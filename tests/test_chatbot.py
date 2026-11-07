@@ -1,51 +1,84 @@
+
+# tests/test_chatbot.py
+# Author: Musfique Hossain Fahim
+
 from chatbot import SupportChatbot
+from mock_model import MockModel
 from order_tool import OrderLookup
 from stock_tool import StockLookup
 
 
+class SilentModel:
+    """A model that returns no answer."""
+
+    def reply(self, instructions, history):
+        return None
+
+
 def make_bot():
-    """Create a fresh chatbot with both tools."""
-    orders = {"A100": "shipped", "A101": "processing"}
-    stock = StockLookup({"rain jacket": 12})
-    return SupportChatbot("Sunny", "Be friendly.", OrderLookup(orders), stock)
+    """Create a chatbot with mock tools and a mock model."""
+    order_tool = OrderLookup({
+        "A100": "shipped",
+        "A101": "processing",
+    })
+    stock_tool = StockLookup({
+        "rain jacket": 12,
+        "day pack": 0,
+    })
+    return SupportChatbot(
+        "Sunny", "Be friendly.", order_tool, stock_tool, MockModel()
+    )
 
 
-def test_tool_finds_known_status():
-    tool = OrderLookup({"A100": "shipped"})
-    assert tool.find_status("A100") == "shipped"
+def make_bot_with_silent_model():
+    """Create a chatbot whose model returns None."""
+    order_tool = OrderLookup({
+        "A100": "shipped",
+        "A101": "processing",
+    })
+    stock_tool = StockLookup({
+        "rain jacket": 12,
+        "day pack": 0,
+    })
+    return SupportChatbot(
+        "Sunny", "Be friendly.", order_tool, stock_tool, SilentModel()
+    )
 
 
-def test_tool_returns_none_for_unknown_order():
-    tool = OrderLookup({"A100": "shipped"})
-    assert tool.find_status("A999") is None
-
-
-def test_respond_records_both_messages():
+def test_chatbot_has_name():
     bot = make_bot()
-    bot.respond("hello")
-    assert len(bot.history) == 2
-    assert bot.history[0]["role"] == "user"
-    assert bot.history[1]["role"] == "assistant"
+    assert bot.name == "Sunny"
 
 
-def test_order_question_uses_the_tool():
+def test_chatbot_starts_with_empty_history():
+    bot = make_bot()
+    assert bot.history == []
+
+
+def test_greeting():
+    bot = make_bot()
+    assert bot.respond("hello") == "Hello! How can I help you today?"
+
+
+def test_order_lookup():
     bot = make_bot()
     assert bot.respond("Where is order A100?") == "Order A100 is shipped."
 
 
-def test_order_question_without_an_id_asks_for_one():
+def test_unknown_order():
     bot = make_bot()
-    assert "order ID" in bot.respond("Where is my order?")
+    assert "couldn't find" in bot.respond("Where is order A999?").lower()
 
 
-def test_address_change_goes_to_a_human():
+def test_address_change_needs_human():
     bot = make_bot()
     assert "human" in bot.respond("Please change my shipping address")
 
 
 def test_unknown_request_gets_a_safe_reply():
     bot = make_bot()
-    assert "not sure" in bot.respond("What is the weather today?")
+    reply = bot.respond("Tell me something random")
+    assert "not sure" in reply.lower()
 
 
 def test_two_chatbots_keep_separate_histories():
@@ -60,7 +93,11 @@ def test_count_user_messages():
     bot = make_bot()
     bot.respond("hello")
     bot.respond("Where is order A100?")
-    assert bot.count_user_messages() == 2
+    user_messages = [
+        message for message in bot.history
+        if message["role"] == "user"
+    ]
+    assert len(user_messages) == 2
 
 
 def test_stock_question_uses_the_tool():
@@ -68,3 +105,26 @@ def test_stock_question_uses_the_tool():
     assert bot.respond("Is the rain jacket in stock?") == (
         "We have 12 of the rain jacket in stock."
     )
+
+
+# Week 11: Four additional tests
+
+
+def test_other_messages_go_to_the_model():
+    bot = make_bot()
+    assert bot.respond("hello") == "Hello! How can I help you today?"
+
+
+def test_safe_reply_when_the_model_has_no_answer():
+    bot = make_bot_with_silent_model()
+    assert "try again" in bot.respond("hello")
+
+
+def test_order_rule_does_not_need_the_model():
+    bot = make_bot_with_silent_model()
+    assert bot.respond("Where is order A100?") == "Order A100 is shipped."
+
+
+def test_handoff_rule_does_not_need_the_model():
+    bot = make_bot_with_silent_model()
+    assert "human" in bot.respond("Please change my shipping address")

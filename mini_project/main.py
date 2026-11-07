@@ -1,32 +1,45 @@
-# mini_project/main.py
 
-from mini_project.dealership import DealershipAssistant, VehicleInventory
+# main.py
+# Author: Musfique Hossain Fahim
 
+from chatbot import SupportChatbot
+from order_tool import OrderLookup
+from stock_tool import StockLookup
+from ollama_model import OllamaModel
 
-def main():
-    vehicles = {
-        "Toyota Prius": 8995,
-        "Honda Jazz": 6495,
-        "Toyota Yaris": 7495,
-    }
+INSTRUCTIONS = """
+You are Sunny, a helpful support assistant for Bayside Outfitters.
+Answer customer questions clearly and briefly.
+"""
 
-    inventory = VehicleInventory(vehicles)
-    bot = DealershipAssistant("Alex", inventory)
+order_tool = OrderLookup({
+    "A100": "shipped",
+    "A101": "processing",
+})
 
-    print("Welcome to the Car Dealership Assistant!")
-    print("Ask about prices, availability, or financing.")
-    print("Type quit to exit.")
+stock_tool = StockLookup({
+    "shirt": 10,
+    "shoes": 5,
+    "hat": 0,
+})
 
-    while True:
-        message = input("You: ")
+model = OllamaModel()
 
-        if message.lower() == "quit":
-            break
+bot = SupportChatbot(
+    "Sunny",
+    INSTRUCTIONS,
+    order_tool,
+    stock_tool,
+    model,
+)
 
-        print(f"{bot.name}: {bot.respond(message)}")
+print("Welcome to Bayside Outfitters!")
+print("Type a message, or type quit to stop.")
 
-    print(f"Conversation messages: {len(bot.history)}")
+user_message = input("You: ")
 
+while user_message.lower() != "quit":
+    print(f"{bot.name}: {bot.respond(user_message)}")
+    user_message = input("You: ")
 
-if __name__ == "__main__":
-    main()
+print(f"Messages in this conversation: {len(bot.history)}")
