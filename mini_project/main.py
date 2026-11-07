@@ -3,9 +3,9 @@
 # Author: Musfique Hossain Fahim
 
 from chatbot import SupportChatbot
+from ollama_model import OllamaModel
 from order_tool import OrderLookup
 from stock_tool import StockLookup
-from ollama_model import OllamaModel
 
 INSTRUCTIONS = """
 You are Sunny, a helpful support assistant for Bayside Outfitters.

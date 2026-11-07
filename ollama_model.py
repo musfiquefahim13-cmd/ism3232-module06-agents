@@ -2,30 +2,41 @@
 # ollama_model.py
 # Author: Musfique Hossain Fahim
 
-from ollama import chat
+from ollama import (
+    ChatResponse,
+    Client,
+    ResponseError,
+)
 
 
 class OllamaModel:
-    """Connect the support chatbot to a local Ollama model."""
+    """Connect to Ollama and generate chatbot responses."""
 
-    def __init__(self, model_name="granite4.1:3b"):
-        """Store the name of the model."""
+    def __init__(self, model_name="llama3.2"):
+        """Set up the Ollama model."""
         self.model_name = model_name
+        self.client = Client()
 
     def reply(self, instructions, history):
-        """Send the conversation to Ollama and return its reply."""
+        """Generate a reply using instructions and chat history."""
+
         messages = [
-            {"role": "system", "content": instructions}
+            {
+                "role": "system",
+                "content": instructions,
+            }
         ]
 
         messages.extend(history)
 
         try:
-            response = chat(
+            response: ChatResponse = self.client.chat(
                 model=self.model_name,
-                messages=messages
+                messages=messages,
             )
+
             return response.message.content
 
-        except Exception:
+        except (ResponseError, ConnectionError, OSError) as error:
+            print(f"Ollama error: {error}")
             return None
