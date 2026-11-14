@@ -77,3 +77,7 @@ Run code quality checks:
 This project demonstrates how classes and objects organize code, how instance attributes store separate conversation histories, and how composition allows chatbots to use separate tools.
 
 It also demonstrates automated testing with pytest and code quality checks with Ruff.
+
+## Module 12 Mini-Project Reflection
+
+My dealership assistant uses model-selected tools to answer customer questions about vehicle prices and availability. A successful request occurs when a customer asks for the price of a Toyota Prius and the assistant selects the get_price tool to return the correct inventory price. The central guardrail refuses a tool request when the model proposes a vehicle that the customer did not mention. Price changes are placed in a pending queue and require staff approval before the inventory is updated. Questions about financing are handed off to the sales team instead of being answered automatically. I updated the assistant's instructions and tool workflow to prioritize verified inventory information, prevent unauthorized changes, and involve a human for sensitive requests.

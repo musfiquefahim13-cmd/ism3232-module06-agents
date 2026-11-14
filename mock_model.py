@@ -1,4 +1,3 @@
-
 # mock_model.py
 # Author: Musfique Hossain Fahim
 

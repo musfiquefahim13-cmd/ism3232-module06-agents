@@ -1,45 +1,53 @@
+# mini_project/main.py
+# Module 12 dealership assistant demonstration.
 
-# main.py
-# Author: Musfique Hossain Fahim
+from mini_project.dealership import DealershipAssistant, VehicleInventory
 
-from chatbot import SupportChatbot
-from ollama_model import OllamaModel
-from order_tool import OrderLookup
-from stock_tool import StockLookup
 
-INSTRUCTIONS = """
-You are Sunny, a helpful support assistant for Bayside Outfitters.
-Answer customer questions clearly and briefly.
-"""
+def main():
+    # Create the dealership inventory.
+    inventory = VehicleInventory(
+        {
+            "Toyota Prius": 12000,
+            "Honda Civic": 15000,
+            "Nissan Leaf": 10000,
+        }
+    )
 
-order_tool = OrderLookup({
-    "A100": "shipped",
-    "A101": "processing",
-})
+    # Create the assistant with model-selected tools.
+    bot = DealershipAssistant("Alex", inventory)
 
-stock_tool = StockLookup({
-    "shirt": 10,
-    "shoes": 5,
-    "hat": 0,
-})
+    print("Dealership Assistant - Module 12")
+    print("Ask about vehicle prices and availability.")
+    print("Type 'quit' to exit.")
 
-model = OllamaModel()
+    while True:
+        message = input("\nCustomer: ").strip()
 
-bot = SupportChatbot(
-    "Sunny",
-    INSTRUCTIONS,
-    order_tool,
-    stock_tool,
-    model,
-)
+        if message.lower() in {"quit", "exit"}:
+            print("Goodbye!")
+            break
 
-print("Welcome to Bayside Outfitters!")
-print("Type a message, or type quit to stop.")
+        if not message:
+            continue
 
-user_message = input("You: ")
+        reply = bot.respond(message)
+        print(f"Assistant: {reply}")
 
-while user_message.lower() != "quit":
-    print(f"{bot.name}: {bot.respond(user_message)}")
-    user_message = input("You: ")
+        # Staff must approve or reject any pending price changes.
+        for request_id, request in list(bot.tools.pending.items()):
+            print("\nSTAFF APPROVAL REQUIRED")
+            print(f"Request: {request_id}")
+            print(f"Vehicle: {request['vehicle']}")
+            print(f"New price: £{request['new_price']:,}")
 
-print(f"Messages in this conversation: {len(bot.history)}")
+            decision = input("Approve (a) or reject (r)? ").strip().lower()
+
+            if decision == "a":
+                print(bot.tools.approve(request_id))
+            else:
+                print(bot.tools.reject(request_id))
+
+
+if __name__ == "__main__":
+    main()

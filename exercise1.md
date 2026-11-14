@@ -1,20 +1,17 @@
+# Exercise 1 — Read the Tool History
 
-# Exercise 1
+**1. What did the customer actually provide?**
 
-1. The two classes are:
-   OrderLookup and SupportChatbot.
+The customer first requested a shipping address change. They then provided order ID A102 and the new address, 9 Pine Street, Tampa.
 
-2. One object of each class in main.py:
-   order_tool and bot.
+**2. Why were the first two tool requests refused?**
 
-3. Every attribute of SupportChatbot:
-   self.name, self.instructions, self.order_tool, self.history.
+The first tool request used an order ID that the customer had not provided. The second used a shipping address the customer had not provided. The toolbox refused both requests because its guardrails check the customer's actual messages.
 
-4. Every method of OrderLookup:
-   __init__, find_order_id, find_status.
+**3. How many messages will Ollama receive if the customer next types "thanks"?**
 
-5. The line in chatbot.py that is the composition:
-   self.order_tool = order_tool
+Ollama will receive **14 messages**: one system message, four customer messages, three assistant replies, and six messages representing the three earlier tool calls and their results.
 
-6. In bot.respond("hello"), self is:
-   bot, the specific SupportChatbot object calling the method.
+**4. Why is the gift-card handoff acceptable?**
+
+The chatbot's safety rule checks for the word "card" and sends the question to a human. This can incorrectly hand off an ordinary gift-card question, but it reduces the risk of missing sensitive payment-card questions. A false-positive handoff is less harmful than mishandling payment information.

@@ -1,111 +1,74 @@
-
 # chatbot.py
-# Author: Musfique Hossain Fahim
+# Author: MUSFIQUE HOSSAIN FAHIM
+
+HANDOFF_WORDS = ["payment", "card"]
+MAX_TOOL_ROUNDS = 3
 
 
 class SupportChatbot:
-    """A support chatbot that uses rules, tools, and an AI model."""
+    """A support chatbot. The model decides. The toolbox checks every tool request."""
 
-    def __init__(self, name, instructions, order_tool, stock_tool, model):
-        """Set up the chatbot with its tools, model, and history."""
+    def __init__(self, name, instructions, tools, model):
+        """Set up one chatbot with its own name, instructions, tools, model, and history."""
         self.name = name
         self.instructions = instructions
-        self.order_tool = order_tool
-        self.stock_tool = stock_tool
+        self.tools = tools
         self.model = model
         self.history = []
 
     def respond(self, user_message):
-        """Save the conversation and return a reply."""
-        self.history.append({
-            "role": "user",
-            "content": user_message
-        })
-
+        """Record the user's message, choose a reply, record it, and return it."""
+        self.history.append({"role": "user", "content": user_message})
         reply = self.choose_reply(user_message)
-
-        self.history.append({
-            "role": "assistant",
-            "content": reply
-        })
-
+        self.history.append({"role": "assistant", "content": reply})
         return reply
 
     def choose_reply(self, user_message):
-        """Use a rule when possible, otherwise ask the AI model."""
-        text = user_message.lower()
-
-        if self.needs_human(text):
-            return (
-                "I can't help with that here. "
-                "I'm passing you to a human agent."
-            )
-
-        if "order" in text:
-            return self.order_reply(user_message)
-
-        if "stock" in text:
-            return self.stock_reply(user_message)
-
+        """Pass payment questions to a person. Send everything else to the model."""
+        if self.needs_human(user_message.lower()):
+            return "I can't help with that here. I'm passing you to a human agent."
         return self.model_reply()
 
-    def model_reply(self):
-        """Get a response from the AI model."""
-        reply = self.model.reply(
-            self.instructions,
-            self.history
-        )
-
-        if reply is None:
-            return (
-                "Sorry, I can't answer that right now. "
-                "Please try again in a moment."
-            )
-
-        return reply
-
     def needs_human(self, text):
-        """Check whether the customer needs human assistance."""
-        keywords = [
-            "address",
-            "payment",
-            "card",
-            "refund"
-        ]
-
-        for keyword in keywords:
-            if keyword in text:
+        """Return True if the message is about something a person must handle."""
+        for word in HANDOFF_WORDS:
+            if word in text:
                 return True
-
         return False
 
-    def order_reply(self, user_message):
-        """Find an order and return its status."""
-        order_id = self.order_tool.find_order_id(user_message)
+    def model_reply(self):
+        """Ask the model. Run each tool it asks for, then ask again, up to a limit."""
+        rounds = 0
+        while rounds < MAX_TOOL_ROUNDS:
+            tool_list = self.tools.tool_list()
+            decision = self.model.decide(self.instructions, self.history, tool_list)
 
-        if order_id is None:
-            return "I couldn't find that order."
+            if decision is None:
+                return "Sorry, I can't answer that right now. Please try again in a moment."
 
-        status = self.order_tool.find_status(order_id)
+            if "text" in decision:
+                return decision["text"]
 
-        if status is None:
-            return "I couldn't find that order."
+            name = decision["tool"]
+            arguments = decision["arguments"]
+            result = self.tools.run(name, arguments, self.history)
 
-        return f"Order {order_id} is {status}."
+            self.history.append(
+                {
+                    "role": "tool",
+                    "tool_name": name,
+                    "arguments": arguments,
+                    "content": result,
+                }
+            )
+            rounds += 1
 
-    def stock_reply(self, user_message):
-        """Find a product and check its stock quantity."""
-        product = self.stock_tool.find_product(user_message)
+        return "Sorry, I couldn't finish that. I'm passing you to a human agent."
 
-        if product is None:
-            return "I couldn't find that item."
-
-        quantity = self.stock_tool.count_for(product)
-
-        if quantity is None:
-            return "I couldn't find that item."
-
-        if quantity == 0:
-            return f"The {product} is out of stock."
-
-        return f"We have {quantity} of the {product} in stock."
+    def count_user_messages(self):
+        """Return how many messages the user has sent so far."""
+        count = 0
+        for message in self.history:
+            if message["role"] == "user":
+                count += 1
+        return count
